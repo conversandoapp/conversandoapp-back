@@ -12,10 +12,10 @@ const SHEET_ID = process.env.SHEET_ID;
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.replace(/\\n/g, "\n") : null;
 
-console.log("📌 Variables de entorno cargadas:");
-console.log("SHEET_ID:", SHEET_ID ? "OK" : "❌ NO DEFINIDO");
-console.log("CLIENT_EMAIL:", CLIENT_EMAIL ? "OK" : "❌ NO DEFINIDO");
-console.log("PRIVATE_KEY:", PRIVATE_KEY ? "OK" : "❌ NO DEFINIDO");
+if (!SHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
+  console.error("❌ Faltan variables de entorno requeridas");
+  process.exit(1);
+}
 
 // Autenticación con Google Sheets
 const auth = new google.auth.JWT(
@@ -38,13 +38,13 @@ app.get("/api/questions", async (req, res) => {
   try {
     console.log("📥 Request recibido en /api/questions");
 
-    const range = "Hoja1!A2:C";
+    const range = "Hoja1!A2:C"; // O usa process.env.SHEET_RANGE
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range,
     });
 
-    console.log("📊 Datos obtenidos de Google Sheets:", response.data.values?.length || 0, "filas");
+    console.log("📊 Filas obtenidas:", response.data.values?.length || 0);
 
     const rows = response.data.values || [];
     const questions = rows.map(([id, question, answer]) => ({
