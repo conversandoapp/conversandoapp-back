@@ -12,6 +12,11 @@ const SHEET_ID = process.env.SHEET_ID;
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.replace(/\\n/g, "\n") : null;
 
+// 🪵 Logs de debug para verificar credenciales
+console.log("📧 CLIENT_EMAIL:", CLIENT_EMAIL);
+console.log("🗝️ PRIVATE_KEY empieza con:", PRIVATE_KEY?.substring(0, 40));
+console.log("📄 SHEET_ID:", SHEET_ID);
+
 if (!SHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
   console.error("❌ Faltan variables de entorno requeridas");
   process.exit(1);
@@ -69,4 +74,5 @@ app.get("/wakeup", (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server corriendo en puerto ${PORT}`);
 });
+
 
