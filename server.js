@@ -17,10 +17,6 @@ if (!SHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
   process.exit(1);
 }
 
-console.log("📧 CLIENT_EMAIL:", CLIENT_EMAIL);
-console.log("📄 SHEET_ID:", SHEET_ID);
-console.log("🗝️ PRIVATE_KEY comienza con:", PRIVATE_KEY?.substring(0, 30));
-
 // Autenticación con Google Sheets
 const auth = new google.auth.JWT(
   CLIENT_EMAIL,
@@ -37,10 +33,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🔔 Wakeup endpoint
+// Endpoint wakeup
 app.get("/wakeup", (req, res) => {
   console.log("👋 Wakeup recibido");
-  res.json({ message: "Backend despierto 🚀" });
+  res.send("Wakeup OK");
 });
 
 // Endpoint preguntas
@@ -48,27 +44,13 @@ app.get("/api/questions", async (req, res) => {
   try {
     console.log("📥 Request recibido en /api/questions");
 
-    const range = "Hoja1!A2:C"; // Ajusta el nombre de la hoja si no es "Hoja1"
-    console.log("📌 Consultando rango:", range);
-
-    // Primero obtenemos metadata del sheet
-    const meta = await sheets.spreadsheets.get({
-      spreadsheetId: SHEET_ID,
-    });
-
-    console.log("📑 Título de la hoja activa:", meta.data.sheets?.[0]?.properties?.title);
-
-    // Ahora obtenemos los valores
+    const range = "Hoja1!A2:C"; // ⚠️ Cambia "Hoja1" si tu hoja se llama distinto
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range,
     });
 
     console.log("📊 Filas obtenidas:", response.data.values?.length || 0);
-
-    if (response.data.values?.length) {
-      console.log("🔎 Primera fila de datos:", response.data.values[0]);
-    }
 
     const rows = response.data.values || [];
     const questions = rows.map(([id, question, answer]) => ({
@@ -79,11 +61,16 @@ app.get("/api/questions", async (req, res) => {
 
     res.json({ questions });
   } catch (error) {
-    console.error("❌ Error leyendo Google Sheets:", error.message);
+    console.error("❌ Error obteniendo preguntas:");
+    console.error("🔎 message:", error.message);
+    if (error.errors) console.error("🔎 details:", JSON.stringify(error.errors, null, 2));
     res.status(500).json({ error: "Error obteniendo preguntas" });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`✅ Server corriendo en puerto ${PORT}`);
+  console.log("📧 CLIENT_EMAIL:", CLIENT_EMAIL);
+  console.log("📄 SHEET_ID:", SHEET_ID);
+  console.log("🗝️ PRIVATE_KEY comienza con:", PRIVATE_KEY?.substring(0, 30));
 });
