@@ -3,7 +3,26 @@ import { google } from "googleapis";
 import cors from "cors";
 
 const app = express();
-app.use(cors());
+
+// 🔧 Configuración de CORS
+const allowedOrigins = [
+  "http://localhost:5173", // tu frontend local
+  "https://tu-frontend-en-produccion.com", // <-- cámbialo por tu dominio real
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin);
+      } else {
+        console.warn("❌ Origen no permitido por CORS:", origin);
+        callback(new Error("No permitido por CORS"));
+      }
+    },
+    credentials: true, // 🔑 necesario si usas `credentials: "include"`
+  })
+);
 
 const PORT = process.env.PORT || 3000;
 
@@ -41,11 +60,15 @@ app.get("/api/codes", async (req, res) => {
     console.log("📥 Request recibido en /api/codes");
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Hoja1!A2:A", // solo códigos
+      range: "Hoja1!A2:C", // solo códigos
     });
 
     const rows = response.data.values || [];
-    const codes = rows.map(([code]) => code);
+    const codes = rows.map(([code,begin,exp]) => ({
+      code,
+      begin,
+      exp
+    }));
 
     console.log("📊 Códigos obtenidos:", codes.length);
     res.json({ codes });
