@@ -10,7 +10,9 @@ const PORT = process.env.PORT || 3000;
 // 🔑 Variables de entorno
 const SHEET_ID = process.env.SHEET_ID;
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.replace(/\\n/g, "\n") : null;
+const PRIVATE_KEY = process.env.PRIVATE_KEY
+  ? process.env.PRIVATE_KEY.replace(/\\n/g, "\n")
+  : null;
 
 if (!SHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
   console.error("❌ Faltan variables de entorno requeridas");
@@ -33,44 +35,55 @@ app.use((req, res, next) => {
   next();
 });
 
-// Endpoint wakeup
-app.get("/wakeup", (req, res) => {
-  console.log("👋 Wakeup recibido");
-  res.send("Wakeup OK");
+// 🔹 Endpoint para códigos (Hoja1, columna A)
+app.get("/api/codes", async (req, res) => {
+  try {
+    console.log("📥 Request recibido en /api/codes");
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: "Hoja1!A2:A", // solo códigos
+    });
+
+    const rows = response.data.values || [];
+    const codes = rows.map(([code]) => code);
+
+    console.log("📊 Códigos obtenidos:", codes.length);
+    res.json({ codes });
+  } catch (error) {
+    console.error("❌ Error obteniendo códigos:", error.message);
+    res.status(500).json({ error: "Error obteniendo códigos" });
+  }
 });
 
-// Endpoint preguntas
+// 🔹 Endpoint para preguntas (Hoja2, columnas A y B)
 app.get("/api/questions", async (req, res) => {
   try {
     console.log("📥 Request recibido en /api/questions");
-
-    const range = "Hoja1!A2:C"; // ⚠️ Cambia "Hoja1" si tu hoja se llama distinto
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range,
+      range: "Hoja2!A2:B", // id y pregunta
     });
 
-    console.log("📊 Filas obtenidas:", response.data.values?.length || 0);
-
     const rows = response.data.values || [];
-    const questions = rows.map(([id, question, answer]) => ({
+    const questions = rows.map(([id, question]) => ({
       id,
       question,
-      answer,
     }));
 
+    console.log("📊 Preguntas obtenidas:", questions.length);
     res.json({ questions });
   } catch (error) {
-    console.error("❌ Error obteniendo preguntas:");
-    console.error("🔎 message:", error.message);
-    if (error.errors) console.error("🔎 details:", JSON.stringify(error.errors, null, 2));
+    console.error("❌ Error obteniendo preguntas:", error.message);
     res.status(500).json({ error: "Error obteniendo preguntas" });
   }
 });
 
+// 🔹 Endpoint wakeup
+app.get("/wakeup", (req, res) => {
+  console.log("👋 Wakeup recibido");
+  res.send("👋 Wakeup OK");
+});
+
 app.listen(PORT, () => {
   console.log(`✅ Server corriendo en puerto ${PORT}`);
-  console.log("📧 CLIENT_EMAIL:", CLIENT_EMAIL);
-  console.log("📄 SHEET_ID:", SHEET_ID);
-  console.log("🗝️ PRIVATE_KEY comienza con:", PRIVATE_KEY?.substring(0, 30));
 });
