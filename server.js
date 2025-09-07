@@ -60,6 +60,13 @@ app.get("/api/questions", async (req, res) => {
   }
 });
 
+// ✅ Nuevo endpoint wakeup
+app.get("/wakeup", (req, res) => {
+  console.log("👋 Wakeup recibido");
+  res.status(200).send("Backend activo");
+});
+
 app.listen(PORT, () => {
   console.log(`✅ Server corriendo en puerto ${PORT}`);
 });
+
