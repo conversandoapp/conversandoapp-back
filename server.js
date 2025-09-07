@@ -12,15 +12,14 @@ const SHEET_ID = process.env.SHEET_ID;
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.replace(/\\n/g, "\n") : null;
 
-// 🪵 Logs de debug para verificar credenciales
-console.log("📧 CLIENT_EMAIL:", CLIENT_EMAIL);
-console.log("🗝️ PRIVATE_KEY empieza con:", PRIVATE_KEY?.substring(0, 40));
-console.log("📄 SHEET_ID:", SHEET_ID);
-
 if (!SHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
   console.error("❌ Faltan variables de entorno requeridas");
   process.exit(1);
 }
+
+console.log("📧 CLIENT_EMAIL:", CLIENT_EMAIL);
+console.log("📄 SHEET_ID:", SHEET_ID);
+console.log("🗝️ PRIVATE_KEY comienza con:", PRIVATE_KEY?.substring(0, 30));
 
 // Autenticación con Google Sheets
 const auth = new google.auth.JWT(
@@ -38,18 +37,38 @@ app.use((req, res, next) => {
   next();
 });
 
-// Endpoint
+// 🔔 Wakeup endpoint
+app.get("/wakeup", (req, res) => {
+  console.log("👋 Wakeup recibido");
+  res.json({ message: "Backend despierto 🚀" });
+});
+
+// Endpoint preguntas
 app.get("/api/questions", async (req, res) => {
   try {
     console.log("📥 Request recibido en /api/questions");
 
-    const range = "Hoja1!A2:C"; // O usa process.env.SHEET_RANGE
+    const range = "Hoja1!A2:C"; // Ajusta el nombre de la hoja si no es "Hoja1"
+    console.log("📌 Consultando rango:", range);
+
+    // Primero obtenemos metadata del sheet
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: SHEET_ID,
+    });
+
+    console.log("📑 Título de la hoja activa:", meta.data.sheets?.[0]?.properties?.title);
+
+    // Ahora obtenemos los valores
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range,
     });
 
     console.log("📊 Filas obtenidas:", response.data.values?.length || 0);
+
+    if (response.data.values?.length) {
+      console.log("🔎 Primera fila de datos:", response.data.values[0]);
+    }
 
     const rows = response.data.values || [];
     const questions = rows.map(([id, question, answer]) => ({
@@ -65,14 +84,6 @@ app.get("/api/questions", async (req, res) => {
   }
 });
 
-// ✅ Nuevo endpoint wakeup
-app.get("/wakeup", (req, res) => {
-  console.log("👋 Wakeup recibido");
-  res.status(200).send("Backend activo");
-});
-
 app.listen(PORT, () => {
   console.log(`✅ Server corriendo en puerto ${PORT}`);
 });
-
-
